@@ -16,3 +16,6 @@ do
 	#stress --cpu 1 --timeout 60 &
 
 done
+
+# use: killall dd
+# to kill all instances of dd
