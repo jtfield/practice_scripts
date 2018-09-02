@@ -3,11 +3,13 @@
 import sys
 import re
 
+# USESAGE: this script will take in a .fasta file, a file containing a list of sequence names you wish to remove
+# and the name of the output .fasta file you wish to produce
+# example command: python3 /path/to/contam_remove.py /path/to/fasta_file /path/to/sequence_to_remove_file /path/to/output_fasta_file
+
 infile1 = sys.argv[1]
 infile2 = sys.argv[2]
 outfile = sys.argv[3]
-
-#output = open("uncontam_dupe_hcolv5.fasta",'w')
 
 trans_file = open(infile1).read().split(">")
 clean_trans = open(outfile,"w")
