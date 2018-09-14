@@ -10,22 +10,24 @@ setwd('/home/vortacs/git-repos/practice_scripts/')
 install.packages("ape")
 install.packages("phangorn")
 install.packages("seqinr")
+install.packages("ips")
 
 library(ape)
 library(phangorn)
 library(seqinr)
+library(ips)
 
 # Next we need to load in the file of morphological character information you constructed
 # this file should be a .csv file with the names of animals as the row names
 # and the character names as the column names
-morph_data = rbind(A=c(1,2,5,0,7,5,2,2,6,0),
-                   B=c(2,4,0,3,1,1,1,3,0,0),
-                   C=c(2,1,5,1,0,1,5,2,6,7),
-                   D=c(0,3,0,4,1,0,2,2,1,0), 
-                   E=c(2,1,1,1,0,5,6,0,1,0), 
-                   I=c(0,4,3,3,7,1,2,3,1,0), 
-                   G=c(1,1,1,1,1,1,1,1,1,0), 
-                   H=c(0,0,0,0,0,0,0,0,0,0))
+morph_data = rbind(A=c(1,2,5,0,7,5,2,2,6,1,6,3,2,0,1),
+                   B=c(2,4,0,3,1,1,1,3,0,2,6,0,2,0,1),
+                   C=c(2,1,5,1,0,1,5,2,6,7,0,6,4,7,1),
+                   D=c(0,3,0,4,1,0,2,2,1,0,2,1,0,2,1), 
+                   E=c(2,1,1,1,0,5,6,0,1,0,0,0,0,1,1), 
+                   I=c(0,4,3,3,7,1,2,3,1,0,0,0,0,0,1), 
+                   G=c(1,1,1,1,1,1,1,1,1,0,0,0,1,1,1), 
+                   H=c(0,2,4,5,6,0,7,3,5,2,1,0,1,0,7))
 head(morph_data)
 
 # Before you change this data and make it your own, make a tree using the commands below
@@ -48,6 +50,9 @@ phymorph_data <- as.phyDat(morph_data, type = "USER", levels = c(0:7), ambiguity
 morph_dist = dist.gene(morph_data)
 morph_dist
 
+phydat_morph_dist = dist.hamming(phymorph_data)
+phydat_morph_dist
+
 # what do you think this distance matrix is showing you? What is the max number of character information that we input?
 # with that in mind, what do the numbers look like they mean in this distance matrix?
 
@@ -60,6 +65,26 @@ plot(upg, main="UPGMA")
 
 stree = nj(dist.gene(morph_data))
 plot(stree, main="NJ")
+
+
+nj_morph = NJ(phydat_morph_dist)
+treepars_morph = optim.parsimony(nj_morph, phymorph_data, method = "fitch" )
+treepars_morph.rooted = root(treepars_morph, outgroup = "I")
+plot(treepars_morph.rooted , "phylogram")
+
+bs_morph.set = bootstrap.phyDat(phymorph_data, pratchet, bs = 100)
+plotBS(treepars_morph, bs_morph.set, p = 10, type = "phylogram", bs.col="black")
+
+bs_morph.set.rooted = root(bs_morph.set, outgroup = "I")
+
+summary(bs_morph.set)
+
+
+plotBS(treepars_morph.rooted, bs_morph.set.rooted, type = "phylogram")
+
+bs_morph.set.root = superTree(bs_morph.set, rooted = TRUE)
+
+plotBS(treepars_morph.rooted, bs_morph.set.root, p = 10, type = "phylogram", bs.col="black")
 
 # Do these trees have the same topology?
 
@@ -85,9 +110,9 @@ plot(trees)
 pscore = parsimony(trees, phymorph_data, method="fitch")
 pscore
 
-
-mbs = boot.phylo(stree, morph_dist, FUN=function(nj), B=100, trees=TRUE)
-
+morph_dist
+mbs = boot.phylo(phy=stree, x=morph_data, FUN=function(nj) B=100, trees=TRUE)
+mbs
 
 # Ok, this is the New Age of Genomics, lets use some of that data to construct a tree
 # Load your sequence data into R
@@ -157,7 +182,10 @@ fitJC <- optim.pml(fit, model = "JC", rearrangement = "stochastic")
 
 bs <- bootstrap.pml(fitJC, bs=100, optNni=TRUE, multicore=TRUE, control = pml.control(trace=0))
 
-# Ok, take a look at the tree. See those numbers?
+ape_bs = boot.phylo(phy=camin_NJ, x=seqdata, NJ, trees=TRUE)
+
+
+# Ok, take a look at the consensus tree. See those numbers?
 # If we recalculated the tree 100 times, what do those numbers mean?
 plotBS(midpoint(fitJC$tree), bs, p = 50, type="p")
 
@@ -165,6 +193,57 @@ plotBS(midpoint(fitJC$tree), bs, p = 50, type="p")
 # This command will write your tree to a file
 # if you're in Rstudio, you can use the EXPORT button as well
 write.tree(bs, file="bootstrap_example.tre")
+
+
+
+
+
+
+
+
+
+seqdata = read.dna("cytb_align.fasta", format="fasta")
+
+# Take a look at the data
+# this is a good way to understand how data is formatted
+
+seqdata
+
+# Count parsimony informative sites
+
+pis(seqdata, what ="absolute", use.ambiguities = FALSE)
+
+camin_phyDat <- phyDat(seqdata, type = "DNA", levels = NULL)
+
+dm = dist.ml(camin_phyDat)
+
+treeNJ = NJ(dm)
+
+plot(treeNJ, "phylogram", main = "NJ")
+
+treepars = optim.parsimony(treeNJ, camin_phyDat, method = "fitch" )
+
+treepars.rooted = root(treepars, outgroup = "Balaenoptera")
+plot(treepars.rooted , "phylogram")
+
+bs.set = bootstrap.phyDat(camin_phyDat, pratchet, bs = 100)
+
+bs.set.rooted = root(bs.set, outgroup = "Carcharodon")
+treepars.rooted = root(treepars, outgroup = "Carcharodon")
+
+summary(bs.set)
+
+
+plotBS(treepars.rooted, bs.set.rooted, type = "phylogram")
+
+
+bs.set.root = superTree(bs.set, rooted = TRUE)
+
+plotBS(treepars, bs.set.root, type = "phylogram", bs = 30)
+
+plotBS(treepars, bs.set.root, bs = 50, type = "phylogram")
+
+
 
 
 
