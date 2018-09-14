@@ -3,6 +3,11 @@
 # This lab will first take multiple morphological measurements that you will provide
 # and construct a phylogenetic tree!
 
+###############
+## Section 1 ##
+###############
+
+
 # first, set the working directory of this program to wherever you put all the files for this lab
 setwd('/home/vortacs/git-repos/practice_scripts/')
 
@@ -42,7 +47,6 @@ plot(upg, main="UPGMA")
 
 phymorph_data <- as.phyDat(morph_data, type = "USER", levels = c(0:7), ambiguity = c('-'), header = "TRUE")
 
-
 # ok Lets just make sure that worked and run a quick neighbor joining tree
 # first we have to construct a distance matrix to show the phylogenetic distance
 # between all the organisms
@@ -58,7 +62,9 @@ phydat_morph_dist
 
 # now we can use a few different methods
 # lets start with UPGMA and Neighbor Joining trees
-# these are algorithmic methods that focus on getting the best tree ###########expand################
+# UPGMA and Neighbor Joining (NJ) are both algorithm methods of phylogenetic analyses
+# this is just a fancy way of saying that they optimize finding the best tree and do it once
+# if you think you found the best tree on the first try, why could this be a problem?
 
 upg = upgma(dist.gene(morph_data))
 plot(upg, main="UPGMA")
@@ -66,53 +72,56 @@ plot(upg, main="UPGMA")
 stree = nj(dist.gene(morph_data))
 plot(stree, main="NJ")
 
+# We are using two different phylogenetic packages here and they specify the same functions
+# in different ways
+# plug this in to call NJ methods on your data with the Phangorn package, which we will use more
 
 nj_morph = NJ(phydat_morph_dist)
+
+# Ok, lets calculate parsimony changes and plot a tree with that data.
+
 treepars_morph = optim.parsimony(nj_morph, phymorph_data, method = "fitch" )
+
+# Take a look at the different parsimony trees that are considered equally parsimonious
+# what is Parsimony and how can it provide phylogenetic information?
+
+trees = bab(phymorph_data, tree = NULL)
+plot(trees)
+
+# This command roots a specific group as the OUTGROUP. Change this value to change which species
+# is the outgroup
+
 treepars_morph.rooted = root(treepars_morph, outgroup = "I")
+
+# Plot your tree, noting that you can change the kind of tree you display
+# check the Phangorn documentation for more options
+
 plot(treepars_morph.rooted , "phylogram")
 
+# Ok, the big moment. Bootstrap your analysis to perform is multiple times
+# and get information about how often we find a particular topology
+
 bs_morph.set = bootstrap.phyDat(phymorph_data, pratchet, bs = 100)
+
+# Plot the resuts using a special bootstrap plotting function
+# what do those numbers mean?
+
 plotBS(treepars_morph, bs_morph.set, p = 10, type = "phylogram", bs.col="black")
+
+# set a root for these bootstrapped trees
+# Here we construct the consensus tree from all of our bootstraps and display
+# information supporting particular topologies
 
 bs_morph.set.rooted = root(bs_morph.set, outgroup = "I")
 
-summary(bs_morph.set)
-
-
-plotBS(treepars_morph.rooted, bs_morph.set.rooted, type = "phylogram")
-
-bs_morph.set.root = superTree(bs_morph.set, rooted = TRUE)
-
-plotBS(treepars_morph.rooted, bs_morph.set.root, p = 10, type = "phylogram", bs.col="black")
-
-# Do these trees have the same topology?
-
-# a parsimony check will tell you if your data is in the phyDat format
-pars = parsimony(upg, phymorph_data)
-pars
-
-pscore = parsimony(stree, phymorph_data, method="fitch")
-pscore
+plotBS(treepars_morph.rooted, bs_morph.set.rooted, p = 10, type = "phylogram")
 
 # Awesome, you're on your way to being an evolutionary biologist!
 # Ok, lets try some other stuff
 
-# This command will give you a rough parsimony tree
-# what is Parsimony and how can it provide phylogenetic information?
-trees = bab(phymorph_data, tree = NULL)
-plot(trees)
-
-# did you hit return and see all the trees this made?
-# so many rearrangements!
-
-# This command will give you the Parsimony score of your tree
-pscore = parsimony(trees, phymorph_data, method="fitch")
-pscore
-
-morph_dist
-mbs = boot.phylo(phy=stree, x=morph_data, FUN=function(nj) B=100, trees=TRUE)
-mbs
+###############
+## Section 2 ##
+###############
 
 # Ok, this is the New Age of Genomics, lets use some of that data to construct a tree
 # Load your sequence data into R
@@ -182,7 +191,7 @@ fitJC <- optim.pml(fit, model = "JC", rearrangement = "stochastic")
 
 bs <- bootstrap.pml(fitJC, bs=100, optNni=TRUE, multicore=TRUE, control = pml.control(trace=0))
 
-ape_bs = boot.phylo(phy=camin_NJ, x=seqdata, NJ, trees=TRUE)
+#ape_bs = boot.phylo(phy=camin_NJ, x=seqdata, NJ, trees=TRUE)
 
 
 # Ok, take a look at the consensus tree. See those numbers?
