@@ -7,13 +7,18 @@ import re
 # and the name of the output .fasta file you wish to produce
 # example command: python3 /path/to/contam_remove.py /path/to/fasta_file /path/to/sequence_to_remove_file /path/to/output_fasta_file
 
+# initialize user supplied arguments
 infile1 = sys.argv[1]
 infile2 = sys.argv[2]
 outfile = sys.argv[3]
 
+# open FASTA file for reading
 trans_file = open(infile1).read().split(">")
+
+# open output file for writing
 clean_trans = open(outfile,"w")
 
+# open and parse contamination file
 contam_list = []
 contam_file = open(infile2).read().split()
 for line in contam_file:
